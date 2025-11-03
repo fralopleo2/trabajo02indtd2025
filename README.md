@@ -58,21 +58,3 @@ El análisis se realiza en el fichero `Trabajo2.qmd` y aplica las tres técnicas
 * `pisos.ahp`: Documento YAML (v2.0) que define la jerarquía y las matrices de comparación para el paquete `ahp`.
 * `teoriadecision_*.R`: Los 3 archivos de funciones R proporcionados por el profesor para AHP-R, ELECTRE y PROMETHEE.
 * `diagrama.png`: (Si lo has subido) Imagen estática del diagrama AHP para el PDF.
-
-## 4. Cómo Reproducir el Trabajo
-
-1.  Clonar o descargar este repositorio.
-2.  Asegurarse de tener **R (versión 4.5.x)** y RStudio.
-3.  Tener los 3 archivos `teoriadecision_*.R` en la misma carpeta.
-4.  Instalar los paquetes de R necesarios:
-    ```r
-    # Instalar paquetes de CRAN
-    install.packages(c("knitr", "kableExtra", "qgraph", "webshot", "remotes"))
-    
-    # Instalar paquete 'ahp' desde GitHub (el de CRAN está obsoleto)
-    remotes::install_github("gluc/ahp")
-    
-    # Instalar motor para 'webshot' (necesario para las funciones del profesor)
-    webshot::install_phantomjs()
-    ```
-5.  Abrir `Trabajo2.qmd` en RStudio y hacer clic en "Render".
