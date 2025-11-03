@@ -708,10 +708,10 @@ A continuación, se presenta una tabla comparativa con los rankings obtenidos po
 
 | Rango | Método AHP (Secc. 2 y 3) | Método ELECTRE I (Secc. 4) | Método PROMETHEE II (Secc. 5) |
 |:---|:---|:---|:---|
-| **1º** | **C_Barato (34.8%)** | \multirow{4}{*}{Núcleo Incomparable} | **C_Barato (Phi: 0.260)** |
-| **2º** | A_Cercano (26.2%) | | D_Centrico (Phi: -0.046) |
-| **3º** | D_Centrico (20.6%) | | B_Reformado (Phi: -0.069) |
-| **4º** | B_Reformado (18.4%) | | A_Cercano (Phi: -0.145) |
+| **1º** | **C_Barato (34.8%)** | Núcleo Incomparable | **C_Barato (Phi: 0.260)** |
+| **2º** | A_Cercano (26.2%) | (Ver Conclusión 4.5) | D_Centrico (Phi: -0.046) |
+| **3º** | D_Centrico (20.6%) | (Ver Conclusión 4.5) | B_Reformado (Phi: -0.069) |
+| **4º** | B_Reformado (18.4%) | (Ver Conclusión 4.5) | A_Cercano (Phi: -0.145) |
 
 *(Nota: La celda "Núcleo Incomparable" solo se expandirá si se renderiza a PDF; en HTML se verá en la primera fila).*
 
