@@ -1,0 +1,157 @@
+Version: 2.0
+Alternatives: &alternatives
+  A_Cercano:
+  B_Reformado:
+  C_Barato:
+  D_Centrico:
+
+Goal:
+  name: "Mejor Piso de Alquiler"
+  preferences:
+    pairwise:
+      # Econ(3)vsUbi, Econ(5)vsCal, Econ(7)vsAmb, Ubi(3)vsCal, Ubi(5)vsAmb, Cal(3)vsAmb
+      - [Económico, Ubicación, 3]
+      - [Económico, Calidad, 5]
+      - [Económico, Ambiente, 7]
+      - [Ubicación, Calidad, 3]
+      - [Ubicación, Ambiente, 5]
+      - [Calidad, Ambiente, 3]
+  children:
+    Económico:
+      preferences:
+        pairwise:
+          # Alq(5)vsGas, Alq(3)vsTrans, Gas(1/3)vsTrans
+          - [Alquiler, Gastos, 5]
+          - [Alquiler, Transporte, 3]
+          - [Gastos, Transporte, 1/3]
+      children:
+        Alquiler:
+          preferences:
+            pairwise:
+              # (A-B, A-C, A-D, B-C, B-D, C-D) = c(1/3, 1/9, 1/5, 1/7, 1/3, 5)
+              - [A_Cercano, B_Reformado, 1/3]
+              - [A_Cercano, C_Barato, 1/9]
+              - [A_Cercano, D_Centrico, 1/5]
+              - [B_Reformado, C_Barato, 1/7]
+              - [B_Reformado, D_Centrico, 1/3]
+              - [C_Barato, D_Centrico, 5]
+          children: *alternatives
+        Gastos:
+          preferences:
+            pairwise:
+              # (A-B, A-C, A-D, B-C, B-D, C-D) = c(1, 1/3, 1/5, 1/3, 1/5, 1/3)
+              - [A_Cercano, B_Reformado, 1]
+              - [A_Cercano, C_Barato, 1/3]
+              - [A_Cercano, D_Centrico, 1/5]
+              - [B_Reformado, C_Barato, 1/3]
+              - [B_Reformado, D_Centrico, 1/5]
+              - [C_Barato, D_Centrico, 1/3]
+          children: *alternatives
+        Transporte:
+          preferences:
+            pairwise:
+              # (A-B, A-C, A-D, B-C, B-D, C-D) = c(7, 9, 7, 3, 1, 1/3)
+              - [A_Cercano, B_Reformado, 7]
+              - [A_Cercano, C_Barato, 9]
+              - [A_Cercano, D_Centrico, 7]
+              - [B_Reformado, C_Barato, 3]
+              - [B_Reformado, D_Centrico, 1]
+              - [C_Barato, D_Centrico, 1/3]
+          children: *alternatives
+    Ubicación:
+      preferences:
+        pairwise:
+          # Tiempo(3)vsCon, Tiempo(5)vsServ, Con(3)vsServ
+          - [Tiempo Uni, Conexión, 3]
+          - [Tiempo Uni, Servicios, 5]
+          - [Conexión, Servicios, 3]
+      children:
+        Tiempo Uni:
+          preferences:
+            pairwise:
+              # (A-B, A-C, A-D, B-C, B-D, C-D) = c(7, 9, 8, 5, 3, 1/3)
+              - [A_Cercano, B_Reformado, 7]
+              - [A_Cercano, C_Barato, 9]
+              - [A_Cercano, D_Centrico, 8]
+              - [B_Reformado, C_Barato, 5]
+              - [B_Reformado, D_Centrico, 3]
+              - [C_Barato, D_Centrico, 1/3]
+          children: *alternatives
+        Conexión:
+          preferences:
+            pairwise:
+              # (A-B, A-C, A-D, B-C, B-D, C-D) = c(1/5, 1/7, 1/5, 1, 3, 5)
+              - [A_Cercano, B_Reformado, 1/5]
+              - [A_Cercano, C_Barato, 1/7]
+              - [A_Cercano, D_Centrico, 1/5]
+              - [B_Reformado, C_Barato, 1]
+              - [B_Reformado, D_Centrico, 3]
+              - [C_Barato, D_Centrico, 5]
+          children: *alternatives
+        Servicios:
+          preferences:
+            pairwise:
+              # (A-B, A-C, A-D, B-C, B-D, C-D) = c(1/3, 3, 1/5, 5, 1/3, 1/7)
+              - [A_Cercano, B_Reformado, 1/3]
+              - [A_Cercano, C_Barato, 3]
+              - [A_Cercano, D_Centrico, 1/5]
+              - [B_Reformado, C_Barato, 5]
+              - [B_Reformado, D_Centrico, 1/3]
+              - [C_Barato, D_Centrico, 1/7]
+          children: *alternatives
+    Calidad:
+      preferences:
+        pairwise:
+          # Estado(1)vsTam
+          - [Estado, Tamaño Hab., 1]
+      children:
+        Estado:
+          preferences:
+            pairwise:
+              # (A-B, A-C, A-D, B-C, B-D, C-D) = c(1/7, 1, 1/3, 7, 5, 1/3)
+              - [A_Cercano, B_Reformado, 1/7]
+              - [A_Cercano, C_Barato, 1]
+              - [A_Cercano, D_Centrico, 1/3]
+              - [B_Reformado, C_Barato, 7]
+              - [B_Reformado, D_Centrico, 5]
+              - [C_Barato, D_Centrico, 1/3]
+          children: *alternatives
+        Tamaño Hab.:
+          preferences:
+            pairwise:
+              # (A-B, A-C, A-D, B-C, B-D, C-D) = c(1/3, 1/5, 1, 1/3, 3, 5)
+              - [A_Cercano, B_Reformado, 1/3]
+              - [A_Cercano, C_Barato, 1/5]
+              - [A_Cercano, D_Centrico, 1]
+              - [B_Reformado, C_Barato, 1/3]
+              - [B_Reformado, D_Centrico, 3]
+              - [C_Barato, D_Centrico, 5]
+          children: *alternatives
+    Ambiente:
+      preferences:
+        pairwise:
+          # Ruido(3)vsCompis
+          - [Ruido, N.º Compis, 3]
+      children:
+        Ruido:
+          preferences:
+            pairwise:
+              # (A-B, A-C, A-D, B-C, B-D, C-D) = c(1/5, 1/5, 1/7, 1, 1/3, 1/3)
+              - [A_Cercano, B_Reformado, 1/5]
+              - [A_Cercano, C_Barato, 1/5]
+              - [A_Cercano, D_Centrico, 1/7]
+              - [B_Reformado, C_Barato, 1]
+              - [B_Reformado, D_Centrico, 1/3]
+              - [C_Barato, D_Centrico, 1/3]
+          children: *alternatives
+        N.º Compis:
+          preferences:
+            pairwise:
+              # (A-B, A-C, A-D, B-C, B-D, C-D) = c(1/3, 1/3, 1/3, 1, 1, 1)
+              - [A_Cercano, B_Reformado, 1/3]
+              - [A_Cercano, C_Barato, 1/3]
+              - [A_Cercano, D_Centrico, 1/3]
+              - [B_Reformado, C_Barato, 1]
+              - [B_Reformado, D_Centrico, 1]
+              - [C_Barato, D_Centrico, 1]
+          children: *alternatives
