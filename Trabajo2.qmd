@@ -105,6 +105,8 @@ Este resultado es lógico:
 * El **`A_Cercano`** obtiene el segundo puesto gracias a sus excelentes puntuaciones en "Tiempo Uni" (prioridad local de 0.6987) y "Transporte" (0.7039), ambos subcriterios importantes.
 * El **`B_Reformado`** queda último, ya que sus fortalezas (Calidad, Ruido) están en criterios que hemos ponderado como menos importantes.
 
+Este ranking es prácticamente idéntico al que se obtiene en la Sección 3 con las funciones R (34.1%), lo que valida ambos métodos.
+
 ## 3. Método AHP (con R)
 
 En este apartado, se replica el análisis AHP utilizando las funciones R proporcionadas por la asignatura. Para ello, primero debemos cargar dichas funciones, que deben estar en la carpeta del proyecto.
@@ -137,12 +139,12 @@ incons_c1_R <- multicriterio.metodoAHP.coef.inconsistencia(mat_c1)
 
 kbl(mat_c1, digits = 3, caption = "Matriz Criterios Principales (AHP-R)") %>%
   kable_styling(bootstrap_options = "striped", full_width = F, 
-                position = "center", latex_options = "hold_position")
+                position = "center")
 
 kbl(t(pesos_c1_R), digits = 4, caption = 
       "Pesos Locales Criterios Principales") %>%
   kable_styling(bootstrap_options = "striped", full_width = T, 
-                position = "center", latex_options = "hold_position")
+                position = "center")
 
 print(paste("Ratio de Inconsistencia (C1):", 
             round(incons_c1_R$RI.coef.inconsistencia, 4)))
@@ -219,22 +221,22 @@ print(paste("Ratio de Inconsistencia (C4-Sub Ambiente):",
 kbl(t(pesos_c1_sub_R), digits = 4, caption = 
       "Pesos Subcriterios de Económico (AHP-R)") %>%
   kable_styling(bootstrap_options = "striped", full_width = T,
-                position = "center", latex_options = "hold_position")
+                position = "center")
 
 kbl(t(pesos_c2_sub_R), digits = 4, caption = 
       "Pesos Subcriterios de Ubicación (AHP-R)") %>%
   kable_styling(bootstrap_options = "striped", full_width = T,
-                position = "center", latex_options = "hold_position")
+                position = "center")
 
 kbl(t(pesos_c3_sub_R), digits = 4, caption = 
       "Pesos Subcriterios de Calidad (AHP-R)") %>%
   kable_styling(bootstrap_options = "striped", full_width = T,
-                position = "center", latex_options = "hold_position")
+                position = "center")
 
 kbl(t(pesos_c4_sub_R), digits = 4, caption = 
       "Pesos Subcriterios de Ambiente (AHP-R)") %>%
   kable_styling(bootstrap_options = "striped", full_width = T,
-                position = "center", latex_options = "hold_position")
+                position = "center")
 ```
 
 ### 3.3. Nivel 3: Alternativas
@@ -357,7 +359,7 @@ inconsistencia_df <- data.frame(Ratio_Inconsistencia = unlist(lista_inconsistenc
 kbl(inconsistencia_df, digits = 4, 
     caption = "Inconsistencia de las 10 Matrices de Alternativas") %>%
   kable_styling(bootstrap_options = "striped", full_width = F, 
-                position = "center", latex_options = "hold_position")
+                position = "center")
 ```
 
 ### 3.4. Cálculo del Ranking Global (AHP-R)
@@ -393,7 +395,7 @@ ranking_df_R <- ranking_df_R[order(ranking_df_R$Ponderacion_Global_AHP_R,
 kbl(ranking_df_R, digits = 4, 
     caption = "Ranking Final (AHP con Funciones R)") %>%
   kable_styling(bootstrap_options = "striped", full_width = F, 
-                position = "center", latex_options = "hold_position")
+                position = "center")
 ```
 
 ### 3.5. Conclusiones del Método AHP (con R)
@@ -401,6 +403,8 @@ kbl(ranking_df_R, digits = 4,
 - **Estudio de Inconsistencia:** Como se vio en los chunks anteriores, se ha calculado el Ratio de Inconsistencia (RI) para cada una de las 14 matrices de comparación. **Todos los valores** (ej. 0.0433 para la matriz de criterios principales) están **por debajo del límite del 10%**, validando la coherencia de los juicios.
 
 - **Ranking Final:** El ranking obtenido (ver Tabla "Ranking Final (AHP con Funciones R)") da como claro ganador al **`C_Barato` (34.11%)**. Esto se debe a que el criterio "Económico" fue ponderado como el más importante (55.8% del peso total) y el piso `C_Barato` domina en "Alquiler". El método AHP permite que esta ventaja *compense* su mala "Ubicación". En segundo lugar, queda `A_Cercano` (25.74%), que gana en los subcriterios de "Tiempo Uni" y "Transporte".
+
+Este resultado confirma el ranking obtenido en la Sección 2 con el paquete ahp (34.8%), demostrando la coherencia de los cálculos.
 
 ## 4. Método ELECTRE I
 
