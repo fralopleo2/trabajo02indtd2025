@@ -1,0 +1,734 @@
+---
+title: "Trabajo 2 sobre Decisión Multicriterio"
+author: "Francisco Javier López León"
+format:
+  html:
+    toc: true
+    toc-float: true
+    self-contained: true
+    theme: cosmo
+---
+## 1. Introducción del problema
+
+El trabajo trata sobre el problema de decisión multicriterio de **"Seleccionar el mejor piso de alquiler para un estudiante"**. El objetivo es evaluar 4 alternativas de pisos basándose en una jerarquía de 4 criterios principales (Económico, Ubicación, Calidad y Ambiente) y sus 10 subcriterios correspondientes.
+
+**Alternativas (Pisos):**
+
+* **A_Cercano**: Al lado de la facultad, pero caro y antiguo.
+* **B_Reformado**: Algo alejado, pero moderno, de alta calidad y precio medio.
+* **C_Barato**: Muy lejos y de baja calidad, pero extremadamente barato.
+* **D_Centrico**: En el centro, ideal para ocio, pero ruidoso y lejos de la facultad.
+
+**Jerarquía de Criterios:**
+
+* **1. Económico**: (C1.1: Alquiler, C1.2: Gastos, C1.3: Transporte)
+* **2. Ubicación**: (C2.1: Tiempo Uni, C2.2: Conexión, C2.3: Servicios)
+* **3. Calidad**: (C3.1: Estado, C3.2: Tamaño Hab.)
+* **4. Ambiente**: (C4.1: Ruido, C4.2: N.º Compis)
+
+Para ello, se aplicarán las técnicas, comenzando por el *Proceso Analítico Jerárquico (AHP)*, seguido de *ELECTRE* y *PROMETHEE*. Finalmente, se compararán los resultados y se extraerán conclusiones.
+
+## 2. Proceso Analítico Jerárquico (AHP)
+
+Para el método AHP, se utiliza el paquete `ahp` de R. Este método requiere la definición de la jerarquía y la comparación por pares de todos los elementos en cada nivel, lo cual se ha definido en el fichero **`pisos.ahp`**.
+
+### 2.1 Cálculo del Modelo AHP (con librería)
+
+```{r}
+# Cargar librerías 
+library(ahp)
+library(knitr)
+library(kableExtra)
+```
+
+```{r}
+# Cargar y Calcular AHP
+
+# 1. Cargar el modelo desde el fichero
+model <- ahp::Load("pisos.ahp") 
+
+# 2. Calcular las prioridades
+ahp::Calculate(model)
+
+# 3. Analizar los resultados
+results_table <- as.data.frame(ahp::AnalyzeTable(model))
+results_priority <- as.data.frame(ahp::AnalyzeTable(model, variable = "priority", sort = "orig"))
+
+rownames(results_table) <- results_table[, 1]
+rownames(results_priority) <- results_priority[, 1]
+```
+
+### 2.2 Diagrama de jerarquía
+
+```{r}  
+# Mostrar Diagrama 
+Visualize(model)
+```
+
+### 2.3 Resultados y Análisis AHP
+
+Las tablas generadas por el paquete ahp nos permiten analizar el ranking final, los pesos de cada criterio y, fundamentalmente, la consistencia de nuestros juicios.
+
+```{r}
+
+# Mostrar Tablas de Resultados
+
+# 1. Tabla de Análisis (Resultados Finales AHP)
+kbl(results_table, digits = 4, caption = "Resultados Finales AHP: Contribución Total") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
+
+# 2. Tabla de Prioridades (Alternativas por Criterio)
+kbl(results_priority, digits = 4, caption = "Prioridades Locales por Subcriterio") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
+```
+
+### 2.4 Conclusiones del Método AHP
+
+**Estudio de Inconsistencia**
+
+Un paso fundamental en AHP es verificar la consistencia. Como se observa en la "Tabla de Resultados Finales" (Tabla 1), el ratio de inconsistencia (`Inconsistency`) del objetivo principal ("Mejor Piso de Alquiler") es de **0.0442**. Todas las demás matrices de la jerarquía también presentan ratios muy por debajo del límite máximo permitido de 0.10 (ej. `Económico` con 0.0367, `Tiempo Uni` con 0.0991).
+
+Por tanto, **las valoraciones han sido coherentes** y los resultados del método AHP son robustos y fiables.
+
+**Comentarios al Ranking**
+
+El ranking final obtenido mediante el paquete `ahp` es el siguiente:
+
+1.  **C_Barato (34.8%)**
+2.  **A_Cercano (26.2%)**
+3.  **D_Centrico (20.6%)**
+4.  **B_Reformado (18.4%)**
+
+Este resultado es lógico:
+
+* El **`C_Barato`** gana de forma clara gracias a su dominio absoluto en el criterio de **"Alquiler"** (ver Tabla 2, `C_Barato` tiene un 0.6574 de prioridad local en Alquiler). Dado que "Económico" es el criterio principal con más peso (56.5%), esta ventaja es decisiva.
+* El **`A_Cercano`** obtiene el segundo puesto gracias a sus excelentes puntuaciones en "Tiempo Uni" (prioridad local de 0.6987) y "Transporte" (0.7039), ambos subcriterios importantes.
+* El **`B_Reformado`** queda último, ya que sus fortalezas (Calidad, Ruido) están en criterios que hemos ponderado como menos importantes.
+
+## 3. Método AHP (con R)
+
+En este apartado, se replica el análisis AHP utilizando las funciones R proporcionadas por la asignatura. Para ello, primero debemos cargar dichas funciones, que deben estar en la carpeta del proyecto.
+
+```{r}
+# --- Cargar Funciones del Profesor ---
+source("teoriadecision_funciones_multicriterio.R")
+source("teoriadecision_funciones_multicriterio_utiles.R")
+source("teoriadecision_funciones_multicriterio_diagram.R")
+
+# También cargamos las librerías para las tablas
+library(knitr)
+library(kableExtra)
+
+# 1. Crear la matriz de Criterios Principales
+# El vector de la diagonal superior es: (E-U), (E-C), (E-A), (U-C), 
+# (U-A), (C-A)
+mat_c1 <- multicriterio.crea.matrizvaloraciones_mej(
+  vector_valoraciones_diagsup = c(3, 5, 7, 3, 5, 3), 
+  numalternativas = 4,
+  v.nombres.alternativas = c("Económico", "Ubicación", "Calidad", "Ambiente")
+)
+
+# 2. Calcular los pesos locales
+pesos_c1_R <- 
+  multicriterio.metodoAHP.variante3.basico(mat_c1)$valoraciones.ahp
+
+# 3. Calcular la Inconsistencia (Requisito de la evaluación)
+incons_c1_R <- multicriterio.metodoAHP.coef.inconsistencia(mat_c1)
+
+kbl(mat_c1, digits = 3, caption = "Matriz Criterios Principales (AHP-R)") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, 
+                position = "center", latex_options = "hold_position")
+
+kbl(t(pesos_c1_R), digits = 4, caption = 
+      "Pesos Locales Criterios Principales") %>%
+  kable_styling(bootstrap_options = "striped", full_width = T, 
+                position = "center", latex_options = "hold_position")
+
+print(paste("Ratio de Inconsistencia (C1):", 
+            round(incons_c1_R$RI.coef.inconsistencia, 4)))
+```
+### 3.2. Nivel 2: Subcriterios
+
+Ahora, definimos las matrices de comparación para los subcriterios que dependen de cada criterio principal.
+
+```{r}
+# 1. Matriz de Subcriterios de C1: Económico (3x3)
+# [Alquiler (5) vs Gastos], [Alquiler (3) vs Transporte], 
+# [Gastos (1/3) vs Transporte]
+mat_c1_sub <- multicriterio.crea.matrizvaloraciones_mej(
+  vector_valoraciones_diagsup = c(5, 3, 1/3),
+  numalternativas = 3,
+  v.nombres.alternativas = c("Alquiler", "Gastos", "Transporte")
+)
+pesos_c1_sub_R <- 
+  multicriterio.metodoAHP.variante3.basico(mat_c1_sub)$valoraciones.ahp
+incons_c1_sub_R <- multicriterio.metodoAHP.coef.inconsistencia(mat_c1_sub)
+
+print(paste("Ratio de Inconsistencia (C1-Sub Económico):",
+            round(incons_c1_sub_R$RI.coef.inconsistencia, 4)))
+
+
+# 2. Matriz de Subcriterios de C2: Ubicación (3x3)
+# [Tiempo Uni (3) vs Conexión], [Tiempo Uni (5) vs Servicios], 
+# [Conexión (3) vs Servicios]
+mat_c2_sub <- multicriterio.crea.matrizvaloraciones_mej(
+  vector_valoraciones_diagsup = c(3, 5, 3),
+  numalternativas = 3,
+  v.nombres.alternativas = c("Tiempo Uni", "Conexión", "Servicios")
+)
+pesos_c2_sub_R <- 
+  multicriterio.metodoAHP.variante3.basico(mat_c2_sub)$valoraciones.ahp
+incons_c2_sub_R <- multicriterio.metodoAHP.coef.inconsistencia(mat_c2_sub)
+
+print(paste("Ratio de Inconsistencia (C2-Sub Ubicación):",
+            round(incons_c2_sub_R$RI.coef.inconsistencia, 4)))
+
+
+# 3. Matriz de Subcriterios de C3: Calidad (2x2)
+# [Estado (1) vs Tamaño Hab.]
+mat_c3_sub <- multicriterio.crea.matrizvaloraciones_mej(
+  vector_valoraciones_diagsup = c(1),
+  numalternativas = 2,
+  v.nombres.alternativas = c("Estado", "Tamaño Hab.")
+)
+pesos_c3_sub_R <- 
+  multicriterio.metodoAHP.variante3.basico(mat_c3_sub)$valoraciones.ahp
+incons_c3_sub_R <- multicriterio.metodoAHP.coef.inconsistencia(mat_c3_sub)
+
+print(paste("Ratio de Inconsistencia (C3-Sub Calidad):",
+            round(incons_c3_sub_R$RI.coef.inconsistencia, 4)))
+
+
+# 4. Matriz de Subcriterios de C4: Ambiente (2x2)
+# [Ruido (3) vs N.º Compis]
+mat_c4_sub <- multicriterio.crea.matrizvaloraciones_mej(
+  vector_valoraciones_diagsup = c(3),
+  numalternativas = 2,
+  v.nombres.alternativas = c("Ruido", "N.º Compis")
+)
+pesos_c4_sub_R <- 
+  multicriterio.metodoAHP.variante3.basico(mat_c4_sub)$valoraciones.ahp
+incons_c4_sub_R <- multicriterio.metodoAHP.coef.inconsistencia(mat_c4_sub)
+
+print(paste("Ratio de Inconsistencia (C4-Sub Ambiente):",
+            round(incons_c4_sub_R$RI.coef.inconsistencia, 4)))
+```
+
+```{r}
+# Mostramos las tablas de pesos de los subcriterios
+kbl(t(pesos_c1_sub_R), digits = 4, caption = 
+      "Pesos Subcriterios de Económico (AHP-R)") %>%
+  kable_styling(bootstrap_options = "striped", full_width = T,
+                position = "center", latex_options = "hold_position")
+
+kbl(t(pesos_c2_sub_R), digits = 4, caption = 
+      "Pesos Subcriterios de Ubicación (AHP-R)") %>%
+  kable_styling(bootstrap_options = "striped", full_width = T,
+                position = "center", latex_options = "hold_position")
+
+kbl(t(pesos_c3_sub_R), digits = 4, caption = 
+      "Pesos Subcriterios de Calidad (AHP-R)") %>%
+  kable_styling(bootstrap_options = "striped", full_width = T,
+                position = "center", latex_options = "hold_position")
+
+kbl(t(pesos_c4_sub_R), digits = 4, caption = 
+      "Pesos Subcriterios de Ambiente (AHP-R)") %>%
+  kable_styling(bootstrap_options = "striped", full_width = T,
+                position = "center", latex_options = "hold_position")
+```
+
+### 3.3. Nivel 3: Alternativas
+
+Finalmente, se crean las 10 matrices de comparación para las 4 alternativas, una por cada subcriterio. Para cada matriz, se calculan los pesos locales y el ratio de inconsistencia.
+
+```{r}
+# Definimos los nombres de las alternativas
+v_nombres_alt <- c("A_Cercano", "B_Reformado", "C_Barato", "D_Centrico")
+num_alt <- 4
+lista_pesos_locales <- list() 
+lista_inconsistencia <- list() 
+
+# 1. C1.1: Alquiler (min)
+# Lógica: C(250) > D(350) > B(380) > A(450)
+# Vectores (A-B, A-C, A-D, B-C, B-D, C-D)
+mat_alt_1_alquiler <- multicriterio.crea.matrizvaloraciones_mej(
+  c(1/3, 1/9, 1/5, 1/7, 1/3, 5), num_alt, v_nombres_alt)
+
+pesos_alt_1_alquiler_R <-
+multicriterio.metodoAHP.variante3.basico(mat_alt_1_alquiler)$valoraciones.ahp
+lista_pesos_locales[["Alquiler"]] <- pesos_alt_1_alquiler_R
+lista_inconsistencia[["Alquiler"]] <-
+multicriterio.metodoAHP.coef.inconsistencia(mat_alt_1_alquiler)$RI.coef.inconsistencia
+
+# 2. C1.2: Gastos (min)
+# Lógica: A(50) = B(50) > D(55) > C(60)
+mat_alt_2_gastos <- multicriterio.crea.matrizvaloraciones_mej(
+  c(1, 1/3, 1/5, 1/3, 1/5, 1/3), num_alt, v_nombres_alt)
+pesos_alt_2_gastos_R <-
+multicriterio.metodoAHP.variante3.basico(mat_alt_2_gastos)$valoraciones.ahp
+lista_pesos_locales[["Gastos"]] <- pesos_alt_2_gastos_R
+lista_inconsistencia[["Gastos"]] <-
+multicriterio.metodoAHP.coef.inconsistencia(mat_alt_2_gastos)$RI.coef.inconsistencia
+
+# 3. C1.3: Transporte (min)
+# Lógica: A(0) > B(30) = D(30) > C(45)
+mat_alt_3_transporte <- multicriterio.crea.matrizvaloraciones_mej(
+  c(7, 9, 7, 3, 1, 1/3), num_alt, v_nombres_alt)
+pesos_alt_3_transporte_R <-
+multicriterio.metodoAHP.variante3.basico(mat_alt_3_transporte)$valoraciones.ahp
+lista_pesos_locales[["Transporte"]] <- pesos_alt_3_transporte_R
+lista_inconsistencia[["Transporte"]] <-
+multicriterio.metodoAHP.coef.inconsistencia(mat_alt_3_transporte)$RI.coef.inconsistencia
+
+# 4. C2.1: Tiempo Uni (min)
+# Lógica: A(5) > B(25) > D(30) > C(45)
+mat_alt_4_tiempo <- multicriterio.crea.matrizvaloraciones_mej(
+  c(7, 9, 8, 5, 3, 1/3), num_alt, v_nombres_alt)
+pesos_alt_4_tiempo_R <-
+multicriterio.metodoAHP.variante3.basico(mat_alt_4_tiempo)$valoraciones.ahp
+lista_pesos_locales[["Tiempo Uni"]] <- pesos_alt_4_tiempo_R
+lista_inconsistencia[["Tiempo Uni"]] <-
+multicriterio.metodoAHP.coef.inconsistencia(mat_alt_4_tiempo)$RI.coef.inconsistencia
+
+# 5. C2.2: Conexión (max)
+# Lógica: B(5) = D(5) > A(3) > C(2)
+mat_alt_5_conexion <- multicriterio.crea.matrizvaloraciones_mej(
+  c(1/5, 1/7, 1/5, 1, 3, 5), num_alt, v_nombres_alt)
+pesos_alt_5_conexion_R <-
+multicriterio.metodoAHP.variante3.basico(mat_alt_5_conexion)$valoraciones.ahp
+lista_pesos_locales[["Conexión"]] <- pesos_alt_5_conexion_R
+lista_inconsistencia[["Conexión"]] <-
+multicriterio.metodoAHP.coef.inconsistencia(mat_alt_5_conexion)$RI.coef.inconsistencia
+
+# 6. C2.3: Servicios (max)
+# Lógica: D(5) > B(4) > A(3) > C(2)
+mat_alt_6_servicios <- multicriterio.crea.matrizvaloraciones_mej(
+  c(1/3, 3, 1/5, 5, 1/3, 1/7), num_alt, v_nombres_alt)
+pesos_alt_6_servicios_R <-
+multicriterio.metodoAHP.variante3.basico(mat_alt_6_servicios)$valoraciones.ahp
+lista_pesos_locales[["Servicios"]] <- pesos_alt_6_servicios_R
+lista_inconsistencia[["Servicios"]] <-
+multicriterio.metodoAHP.coef.inconsistencia(mat_alt_6_servicios)$RI.coef.inconsistencia
+
+# 7. C3.1: Estado (max)
+# Lógica: B(5) > D(3) > A(2) = C(2)
+mat_alt_7_estado <- multicriterio.crea.matrizvaloraciones_mej(
+  c(1/7, 1, 1/3, 7, 5, 1/3), num_alt, v_nombres_alt)
+pesos_alt_7_estado_R <-
+multicriterio.metodoAHP.variante3.basico(mat_alt_7_estado)$valoraciones.ahp
+lista_pesos_locales[["Estado"]] <- pesos_alt_7_estado_R
+lista_inconsistencia[["Estado"]] <-
+multicriterio.metodoAHP.coef.inconsistencia(mat_alt_7_estado)$RI.coef.inconsistencia
+
+# 8. C3.2: Tamaño Hab. (max)
+# Lógica: C(15) > B(12) > A(10) = D(10)
+mat_alt_8_tamano <- multicriterio.crea.matrizvaloraciones_mej(
+  c(1/3, 1/5, 1, 1/3, 3, 5), num_alt, v_nombres_alt)
+pesos_alt_8_tamano_R <-
+multicriterio.metodoAHP.variante3.basico(mat_alt_8_tamano)$valoraciones.ahp
+lista_pesos_locales[["Tamaño Hab."]] <- pesos_alt_8_tamano_R
+lista_inconsistencia[["Tamaño Hab."]] <-
+multicriterio.metodoAHP.coef.inconsistencia(mat_alt_8_tamano)$RI.coef.inconsistencia
+
+# 9. C4.1: Ruido (min)
+# Lógica: B(2) = C(2) > A(4) > D(5)
+mat_alt_9_ruido <- multicriterio.crea.matrizvaloraciones_mej(
+  c(1/5, 1/5, 1/7, 1, 1/3, 1/3), num_alt, v_nombres_alt)
+pesos_alt_9_ruido_R <-
+multicriterio.metodoAHP.variante3.basico(mat_alt_9_ruido)$valoraciones.ahp
+lista_pesos_locales[["Ruido"]] <- pesos_alt_9_ruido_R
+lista_inconsistencia[["Ruido"]] <-
+multicriterio.metodoAHP.coef.inconsistencia(mat_alt_9_ruido)$RI.coef.inconsistencia
+
+# 10. C4.2: N.º Compis (min)
+# Lógica: B(2) = D(2) > A(3) = C(3)
+mat_alt_10_compis <- multicriterio.crea.matrizvaloraciones_mej(
+  c(1/3, 1/3, 1/3, 1, 1, 1), num_alt, v_nombres_alt)
+pesos_alt_10_compis_R <-
+multicriterio.metodoAHP.variante3.basico(mat_alt_10_compis)$valoraciones.ahp
+lista_pesos_locales[["N.º Compis"]] <- pesos_alt_10_compis_R
+lista_inconsistencia[["N.º Compis"]] <-
+multicriterio.metodoAHP.coef.inconsistencia(mat_alt_10_compis)$RI.coef.inconsistencia
+
+
+# Imprimir el estudio de inconsistencia
+inconsistencia_df <- data.frame(Ratio_Inconsistencia = unlist(lista_inconsistencia))
+
+kbl(inconsistencia_df, digits = 4, 
+    caption = "Inconsistencia de las 10 Matrices de Alternativas") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, 
+                position = "center", latex_options = "hold_position")
+```
+
+### 3.4. Cálculo del Ranking Global (AHP-R)
+
+Finalmente, se calcula el ranking global. Para ello, primero se calcula el peso global de cada uno de los 10 subcriterios (hojas del árbol) multiplicando el peso de su criterio principal por su peso local.
+
+```{r}
+# 1. Calcular el vector de pesos globales de los 10 subcriterios
+# (Peso Criterio * Peso Local Subcriterio)
+vec_pesos_globales_sub_R <- c(
+  pesos_c1_R[1] * pesos_c1_sub_R, # Pesos de Económico * Sub-pesos de Económico
+  pesos_c1_R[2] * pesos_c2_sub_R, # Pesos de Ubicación * Sub-pesos de Ubicación
+  pesos_c1_R[3] * pesos_c3_sub_R, # Pesos de Calidad * Sub-pesos de Calidad
+  pesos_c1_R[4] * pesos_c4_sub_R # Pesos de Ambiente * Sub-pesos de Ambiente
+)
+
+# 2. Crear la matriz de pesos de alternativas 
+# (10 Subcriterios x 4 Alternativas)
+# Usamos 'do.call(rbind, ...)' para unir los 10 vectores de la lista
+mat_alt_final_R <- do.call(rbind, lista_pesos_locales)
+
+# 3. Calcular el ranking final (Producto matricial)
+# (1x10) %*% (10x4) = (1x4)
+# Esto es: (Pesos Globales Subcriterios) %*% (Pesos Locales Alternativas)
+ranking_final_R <- vec_pesos_globales_sub_R %*% mat_alt_final_R
+
+# 4. Formatear y mostrar la tabla de resultados
+ranking_df_R <- as.data.frame(t(ranking_final_R)) 
+colnames(ranking_df_R) <- "Ponderacion_Global_AHP_R"
+ranking_df_R <- ranking_df_R[order(ranking_df_R$Ponderacion_Global_AHP_R,
+                                   decreasing = TRUE), , drop = FALSE]
+
+kbl(ranking_df_R, digits = 4, 
+    caption = "Ranking Final (AHP con Funciones R)") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, 
+                position = "center", latex_options = "hold_position")
+```
+
+### 3.5. Conclusiones del Método AHP (con R)
+
+- **Estudio de Inconsistencia:** Como se vio en los chunks anteriores, se ha calculado el Ratio de Inconsistencia (RI) para cada una de las 14 matrices de comparación. **Todos los valores** (ej. 0.0433 para la matriz de criterios principales) están **por debajo del límite del 10%**, validando la coherencia de los juicios.
+
+- **Ranking Final:** El ranking obtenido (ver Tabla "Ranking Final (AHP con Funciones R)") da como claro ganador al **`C_Barato` (34.11%)**. Esto se debe a que el criterio "Económico" fue ponderado como el más importante (55.8% del peso total) y el piso `C_Barato` domina en "Alquiler". El método AHP permite que esta ventaja *compense* su mala "Ubicación". En segundo lugar, queda `A_Cercano` (25.74%), que gana en los subcriterios de "Tiempo Uni" y "Transporte".
+
+## 4. Método ELECTRE I
+
+El método ELECTRE es un enfoque basado en la comparación por pares de alternativas, utilizando los conceptos de concordancia y discordancia para establecer relaciones de dominancia.
+
+A diferencia de AHP, ELECTRE I es un método no compensatorio (una muy mala nota no se puede compensar con una buena) y puede dar como resultado un "núcleo" de alternativas incomparables, en lugar de un ranking único.
+
+### 4.1 Carga de Funciones y Preparación de Datos
+
+Para mantener la consistencia del análisis, se utilizan los resultados del método AHP (Sección 2) como datos de entrada. Las funciones del profesor ya fueron cargadas en la sección anterior.
+
+```{r}
+# Cargamos la librería para los grafos de dominancia
+library(qgraph)
+```
+### 4.2. Creación de la Matriz de Decisión para ELECTRE
+
+A partir de los datos de AHP, se construye la matriz de decisión que requiere ELECTRE. Usaremos la tabla de "Prioridades Locales" (la Tabla 2 de la Sección 2), que nos dice cómo puntúa cada piso en cada subcriterio.
+
+```{r}  
+
+# 1. Definir los nombres de los 10 subcriterios (hojas del árbol)
+nombres_subcriterios <- c("Alquiler", "Gastos", "Transporte",
+                          "Tiempo Uni", "Conexión", "Servicios",
+                          "Estado", "Tamaño Hab.",
+                          "Ruido", "N.º Compis")
+
+# 2. Definir los nombres de las 4 alternativas
+nombres_alternativas <- c("A_Cercano", "B_Reformado", "C_Barato", "D_Centrico")
+
+# 3. Crear la matriz base desde la "Tabla 2" (results_priority)
+# Esta es la matriz (Subcriterios x Alternativas)
+matriz_base <- results_priority[nombres_subcriterios, nombres_alternativas]
+
+# 4. Transponer la matriz para tener (Alternativas x Criterios)
+matriz_electre <- t(matriz_base)
+
+# 5. Mostrar la matriz de decisión que usaremos
+kbl(matriz_electre, digits = 3, caption = "Matriz de Decisión para ELECTRE (Alternativas x Criterios)") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
+```
+
+### 4.3 Definición de Pesos y Parámetros
+
+```{r}
+
+# 1. Preparar Pesos (W)
+# Extraemos los pesos GLOBALES de los subcriterios de la "Tabla 1" (results_table)
+pesos_globales_ahp <- results_table[nombres_subcriterios, "Weight"]
+
+# Normalizar los pesos para que sumen 1 (requisito de la función ELECTRE)
+pesos_electre_norm <- pesos_globales_ahp / sum(pesos_globales_ahp)
+
+kbl(t(pesos_electre_norm), digits = 3, caption = "Vector de Pesos (W) para ELECTRE") %>%
+  kable_styling(bootstrap_options = "striped", full_width = T, position = "center")
+
+
+# 2. Preparar Parámetros de Concordancia y Veto (Discordancia)
+
+# Nivel de Concordancia (alpha):
+# Aceptamos que A domina a B si la suma de pesos de los criterios donde A>B es >= 70%
+alpha_concordancia <- 0.7
+
+# Umbrales de Discordancia (d_i) o "Vetos"
+# La matriz de decisión tiene valores de 0 a 1 (son pesos).
+# Establecemos un VETO si un piso es MUCHO peor que otro en un criterio clave.
+# Los criterios más importantes son "Alquiler" y "Tiempo Uni".
+# Si la diferencia en la puntuación local (que es un peso) es mayor a 0.30 (30%), vetamos la dominancia.
+umbrales_discordancia <- c(
+    0.30,   # C1.1 Alquiler (Veto si la diferencia es > 30%)
+    Inf,    # C1.2 Gastos (Sin veto)
+    Inf,    # C1.3 Transporte (Sin veto)
+    0.30,   # C2.1 Tiempo Uni (Veto si la diferencia es > 30%)
+    Inf,    # C2.2 Conexión (Sin veto)
+    Inf,    # C2.3 Servicios (Sin veto)
+    Inf,    # C3.1 Estado (Sin veto)
+    Inf,    # C3.2 Tamaño Hab. (Sin veto)
+    Inf,    # C4.1 Ruido (Sin veto)
+    Inf     # C4.2 N.º Compis (Sin veto)
+)
+
+```
+
+### 4.4 Ejecución y Análisis Iterativo
+
+Realizamos un análisis iterativo para encontrar el núcleo del grafo de superación, tal como se pide en la evaluación.
+
+* Iteración 1: Todas las alternativas
+
+Primero, ejecutamos el método con las 4 alternativas.
+
+```{r}
+
+#Ejecutar ELECTRE I (Iteración 1) 
+
+
+# 1. Ejecutar ELECTRE I con la función de la asignatura
+salida_electre1 <- multicriterio.metodoELECTRE_I(
+    tabdecs.X = matriz_electre,
+    pesos.criterios = pesos_electre_norm,
+    nivel.concordancia.minimo.alpha = alpha_concordancia,
+    no.se.compensan = umbrales_discordancia
+)
+
+# 2. Mostrar el núcleo (las mejores alternativas)
+print("--- ELECTRE Iteración 1: Núcleo Aproximado ---")
+print(salida_electre1$nucleo_aprox)
+
+# 3. Mostrar el grafo de dominancia
+qgraph::qgraph(salida_electre1$relacion.dominante, 
+               labels = rownames(matriz_electre),
+               edge.labels = FALSE,
+               posCol = "blue",
+               label.cex = 1.2,
+               label.color = "black",
+               vsize = 10,
+               title = "ELECTRE I: Grafo de Dominancia (Iteración 1)")
+
+```
+
+* Iteración 2: Filtrado del Núcleo
+
+El núcleo de la Iteración 1 nos devolverá un conjunto de alternativas (el/los ganador/es). Si hay más de una, repetimos el análisis solo con ellas para intentar desempatar.
+
+```{r}
+
+# Ejecutar ELECTRE I (Iteración 2)
+
+# 1. Identificamos las alternativas del núcleo anterior
+alternativas_nucleo1 <- salida_electre1$nucleo_aprox 
+# Comprobamos si hay algo que filtrar
+if (length(alternativas_nucleo1) > 0 && length(alternativas_nucleo1) < nrow(matriz_electre)) {
+  
+  alternativas_nucleo1_nombres <- names(alternativas_nucleo1)
+
+  print("--- Ejecutando ELECTRE I: Iteración 2 (solo núcleo) ---")
+  print("Alternativas en esta iteración:")
+  print(alternativas_nucleo1_nombres)
+
+  # 2. Ejecutamos ELECTRE I de nuevo, filtrando por el núcleo
+  salida_electre2 <- multicriterio.metodoELECTRE_I(
+      tabdecs.X = matriz_electre,
+      pesos.criterios = pesos_electre_norm,
+      nivel.concordancia.minimo.alpha = alpha_concordancia,
+      no.se.compensan = umbrales_discordancia,
+      que.alternativas = alternativas_nucleo1_nombres # ¡Filtro clave!
+  )
+
+  # 3. Imprimir el núcleo final
+  print("--- ELECTRE Iteración 2: Núcleo Final ---")
+  print(salida_electre2$nucleo_aprox)
+
+  # 4. Mostrar el grafo de dominancia final
+  print("--- ELECTRE Iteración 2: Grafo de Dominancia Final ---")
+  qgraph::qgraph(salida_electre2$relacion.dominante, 
+                 labels = alternativas_nucleo1_nombres,
+                 edge.labels = FALSE,
+                 posCol = "blue",
+                 label.cex = 1.2,
+                 label.color = "black",
+                 vsize = 10,
+                 title = "ELECTRE I: Grafo de Dominancia (Iteración 2)")
+} else {
+  print("--- ELECTRE Iteración 2: No necesaria ---")
+  print("El núcleo de la Iteración 1 ya es el resultado final (o está vacío o incluye todas las alternativas).")
+}
+
+```
+### 4.5 Conclusiones del Método ELECTRE I
+
+El método ELECTRE I se ha ejecutado **siguiendo el paso a paso** requerido.
+
+1.  **Iteración 1:** Al ejecutar el método con las 4 alternativas, el grafo de superación (ver Grafo "ELECTRE I: Grafo de Dominancia (Iteración 1)") **no mostró ninguna flecha**. Esto significa que, bajo los parámetros establecidos ($\alpha=0.7$ y los vetos en "Alquiler" y "Tiempo Uni"), **ninguna alternativa domina a otra**.
+2.  **Resultado:** Como ninguna alternativa es dominada, el **núcleo aproximado** resultante incluye a **todas las alternativas**: `[A_Cercano, B_Reformado, C_Barato, D_Centrico]`.
+3.  **Iteración 2:** Al ser el núcleo igual al conjunto original, el análisis concluye en la primera iteración.
+
+**Conclusión:** ELECTRE I, a diferencia de AHP, no nos da un ganador. Concluye que las cuatro opciones son **incomparables** entre sí. Esto se debe a los fuertes conflictos entre criterios clave (ej. "Alquiler" vs. "Tiempo Uni") que el método no puede compensar.
+
+## 5. Método PROMETHEE II
+
+El método PROMETHEE II es un enfoque de decisión multicriterio que utiliza funciones de preferencia para comparar alternativas y generar un ranking completo basado en flujos netos (`Phi`).
+
+### 5.1. Definición de Parámetros y Funciones de Preferencia
+
+Este es el paso clave de PROMETHEE. Reutilizamos la matriz de decisión y los pesos de ELECTRE, pero debemos definir las **funciones de preferencia generalizadas** y los **parámetros (p, q)** para cada uno de los 10 subcriterios.
+
+```{r}
+
+# Definir Parámetros de PROMETHEE
+
+# 1. Matriz de Decisión: Reutilizamos la de ELECTRE
+# (matriz_electre)
+
+# 2. Pesos: Reutilizamos los de ELECTRE (normalizados de AHP)
+pesos_promethee <- pesos_electre_norm
+
+# 3. Vector min/max:
+# TODOS nuestros criterios son "max" porque la matriz de decisión
+# (matriz_electre) contiene los "pesos locales" de AHP (donde más es mejor).
+vec_fminmax <- rep("max", ncol(matriz_electre))
+
+
+# 4. Tabla de Funciones de Preferencia (tab.fpref)
+# Aquí definimos el "tipo" de criterio (1-6) y sus umbrales.
+# Usaremos:
+# Tipo 1 (Usual): Para criterios menos importantes (diferencia 0 o 1)
+# Tipo 3 (V-shape): Para criterios importantes (preferencia lineal)
+# Tipo 5 (Linear c/ indif): Para criterios donde pequeñas diferencias no importan.
+
+# Los valores (p, q) son sobre los pesos (0 a 1).
+# q = umbral de indiferencia (ej. 0.05 = 5%)
+# p = umbral de preferencia (ej. 0.20 = 20%)
+
+tab_fpref_promethee <- matrix(
+  c(
+    # Criterio, q (indiferencia), p (preferencia), s (gaussiano)
+    3, 0.00, 0.25, 0,  # C1.1 Alquiler: V-shape (p=25%)
+    1, 0.00, 0.00, 0,  # C1.2 Gastos: Usual
+    3, 0.00, 0.20, 0,  # C1.3 Transporte: V-shape (p=20%)
+    3, 0.00, 0.25, 0,  # C2.1 Tiempo Uni: V-shape (p=25%)
+    1, 0.00, 0.00, 0,  # C2.2 Conexión: Usual
+    1, 0.00, 0.00, 0,  # C2.3 Servicios: Usual
+    5, 0.05, 0.20, 0,  # C3.1 Estado: Linear c/ indif (q=5%, p=20%)
+    1, 0.00, 0.00, 0,  # C3.2 Tamaño Hab.: Usual
+    1, 0.00, 0.00, 0,  # C4.1 Ruido: Usual
+    1, 0.00, 0.00, 0   # C4.2 N.º Compis: Usual
+  ),
+  ncol = 4, 
+  byrow = TRUE
+)
+```
+
+### 5.2. Ejecución y Resultados de PROMETHEE II
+
+Ahora, ejecutamos el método. Este generará un ranking completo de las 4 alternativas, ordenándolas por su flujo neto (Phi).
+
+```{r}
+
+# Ejecutar PROMETHEE
+# (Asegúrate de tener la función multicriterio.metodo.promethee_windows)
+
+salida_promethee <- multicriterio.metodo.promethee_windows(
+  matdecision = matriz_electre,
+  tab.fpref = tab_fpref_promethee,
+  pesos.criterios = pesos_promethee,
+  fminmax = vec_fminmax
+)
+
+# La función del profesor devuelve una lista de tablas formateadas para kableExtra
+tablas_promethee <- multicriterio.metodo.promethee_windows_kableExtra(salida_promethee)
+
+```
+
+* ***Tabla de Escenario (Parámetros)***
+
+A continuación, se muestra la tabla de escenario que resume los parámetros, pesos y las funciones de preferencia utilizadas.
+
+```{r}
+
+# Mostrar Tabla de Escenario 
+tablas_promethee$tabEscenario
+
+```
+
+* ***Tabla de Ranking (Resultados)***
+
+La siguiente tabla muestra el ranking final de las alternativas. El orden se basa en el flujo neto (Phi).
+
+```{r}
+
+# Mostrar Tabla de Ranking
+tablas_promethee$tabAcciones
+
+``` 
+### 5.3. Conclusiones del Método PROMETHEE II
+
+El método PROMETHEE II, a diferencia de ELECTRE I, sí nos proporciona un **ranking completo** de las alternativas, basado en el Flujo Neto (`Phi`). Este flujo se calcula como la diferencia entre el flujo positivo (`Phi.mas`, o las fortalezas) y el flujo negativo (`Phi.menos`, o las debilidades) de cada alternativa.
+
+El ranking final obtenido es:
+
+1.  **C_Barato (Phi = 0.2598)**
+2.  **D_Centrico (Phi = -0.0464)**
+3.  **B_Reformado (Phi = -0.0688)**
+4.  **A_Cercano (Phi = -0.1446)**
+
+**Análisis de la tabla:**
+
+* **El Ganador:** El `C_Barato` repite como ganador, y es la única alternativa con un flujo neto positivo. La "Tabla de Ranking" (tabAcciones) muestra que gana por un doble motivo: tiene el `Phi.mas` (fortalezas) más alto (0.5443) y el `Phi.menos` (debilidades) más bajo (0.2845).
+* **Diferencia clave con AHP:** El cambio más drástico está en el `A_Cercano`. En AHP (un método compensatorio) quedó en 2º lugar, pero en PROMETHEE (un método de flujos netos) cae al **último puesto**.
+* **Justificación:** Esto se debe a su `Phi.menos` de 0.4863, el más alto de todos. Sus grandes debilidades (principalmente ser el más caro en "Alquiler") no se compensan, y provocan que sea superado frecuentemente por las otras alternativas, hundiéndole el flujo neto.
+
+**Conclusión:** PROMETHEE II, usando las funciones de preferencia definidas, ratifica al `C_Barato` como la mejor opción por ser la más equilibrada y con menos debilidades.
+
+---
+
+## 6. Conclusiones Finales (Comparativa de Métodos)
+
+En este trabajo se han aplicado tres métodos de decisión multicriterio (AHP, ELECTRE I y PROMETHEE II) para resolver el problema de la "Selección del mejor piso de alquiler para un estudiante".
+
+A continuación, se presenta una tabla comparativa con los rankings obtenidos por cada método:
+
+| Rango | Método AHP (Secc. 2 y 3) | Método ELECTRE I (Secc. 4) | Método PROMETHEE II (Secc. 5) |
+|:---|:---|:---|:---|
+| **1º** | **C_Barato (34.8%)** | \multirow{4}{*}{Núcleo Incomparable} | **C_Barato (Phi: 0.260)** |
+| **2º** | A_Cercano (26.2%) | | D_Centrico (Phi: -0.046) |
+| **3º** | D_Centrico (20.6%) | | B_Reformado (Phi: -0.069) |
+| **4º** | B_Reformado (18.4%) | | A_Cercano (Phi: -0.145) |
+
+*(Nota: La celda "Núcleo Incomparable" solo se expandirá si se renderiza a PDF; en HTML se verá en la primera fila).*
+
+### Justificación de las Diferencias entre Métodos
+
+Tal como solicita la evaluación, el análisis de los tres métodos revela diferencias significativas que se explican por la lógica interna de cada uno:
+
+1.  **El Ganador (AHP vs PROMETHEE):**
+    * Ambos métodos, AHP (agregación total) y PROMETHEE II (flujos netos), coinciden en que el ganador es el **`C_Barato`**. Esto da una gran robustez a la decisión, ya que dos lógicas distintas llegan a la misma conclusión. El `C_Barato` gana porque su dominio en el criterio más importante ("Económico") es abrumador.
+
+2.  **El Caso de `A_Cercano` (AHP vs PROMETHEE):**
+    * La mayor diferencia radica en el `A_Cercano`. En **AHP** (método **compensatorio**) queda 2º, porque su excelente "Tiempo Uni" *compensa* su pésimo "Alquiler".
+    * En **PROMETHEE II** (método **no compensatorio** basado en flujos), queda 4º (último). Sus debilidades (alto `Phi.menos`) son tan grandes que no se compensan, y lo hunden en el ranking.
+
+3.  **El Caso de ELECTRE I (Incomparabilidad):**
+    * AHP y PROMETHEE **fuerzan un ranking completo**.
+    * **ELECTRE I** (método de superación con vetos) es el único que respeta la **incomparabilidad**. Concluye que las 4 alternativas están en el núcleo (son incomparables). Esto se debe a los fuertes conflictos entre criterios (el "Alquiler" del `C_Barato` vs. el "Tiempo Uni" del `A_Cercano`) y los vetos que establecimos, que impiden que un piso domine a otro.
+
+### Conclusión Final
+
+No existe un "mejor método", sino que cada uno aporta una visión diferente:
+* Si el decisor es **compensatorio** (un gran beneficio suple un gran coste), **AHP** le recomienda el **`C_Barato`** y pone segundo al `A_Cercano`.
+* Si el decisor es **no compensatorio** y busca el **mejor balance fortalezas/debilidades**, **PROMETHEE II** le recomienda el **`C_Barato`** y castiga duramente al `A_Cercano` por sus debilidades.
+* Si el decisor **no acepta vetos** (ej. "no quiero un piso que sea mucho peor que otro en 'Tiempo Uni'"), **ELECTRE I** le dice que no hay una solución única y que los 4 pisos son incomparables.
